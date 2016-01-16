@@ -10,7 +10,7 @@ defmodule Queue do
   end
 
   def init(capacity) do
-    IO.inspect "--> #{capacity}"
+    #IO.inspect "--> #{capacity}"
     {:ok, %Queue.State{capacity: capacity}}
   end
 
@@ -43,11 +43,11 @@ defmodule Queue do
     case put_work(from, new_work, state.writers, state.readers, state.work, state.capacity) do
       {:reply, readers, writers, work} ->
         new_state = %State{state | work: work, readers: readers, writers: writers}
-        IO.inspect new_state
+        ##IO.inspect new_state
         {:reply, :ok, new_state}
       {:noreply, readers, writers, work} ->
         new_state = %State{state | work: work, readers: readers, writers: writers}
-        IO.inspect new_state
+        #IO.inspect new_state
         {:noreply, new_state}
     end
   end

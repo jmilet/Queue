@@ -3,29 +3,59 @@ defmodule QueueTest do
   doctest Queue
 
   test "Enqueue one element" do
-    Queue.start_link :uno, 10
-    Queue.put :uno, :test
-    assert :test == Queue.get :uno
+    process = :uno
+    Queue.start_link process, 2
+    Queue.put process, 1
+    assert 1 == Queue.get process
   end
 
   test "The queue gets full" do
-    Queue.start_link :dos, 2
-    Queue.put :dos, :uno
-    Queue.put :dos, :dos
-    assert catch_exit(Queue.put :dos, :tres)
+    process = :dos
+    Queue.start_link process, 2
+    Queue.put process, 1
+    Queue.put process, 2
+    assert catch_exit(Queue.put :dos, 3)
   end
 
   test "The queue gets full and one element get released" do
-    Queue.start_link :dos, 2
+    process = :tres
 
-    Queue.put :dos, 1
-    Queue.put :dos, 2
+    Queue.start_link process, 2
+    Queue.put process, 1
+    Queue.put process, 2
+
     spawn fn ->
-      :timer.sleep(200)
-      Queue.get :dos
+      :timer.sleep(100)
+      Queue.get process
     end
-    Queue.put :dos, 3
-    assert Queue.get(:dos) == 3
+
+    Queue.put process, 3
+    assert Queue.get(process) == 3
+  end
+
+  test "The queue gets full by two elements" do
+    process = :cuatro
+
+    Queue.start_link process, 2
+    Queue.put process, 1
+    Queue.put process, 2
+
+    spawn fn ->
+      Queue.put process, 3
+    end
+    spawn fn ->
+      Queue.put process, 4
+    end
+    spawn fn ->
+      Queue.get process
+      Queue.get process
+      Queue.get process
+    end
+
+    :timer.sleep(100)
+
+    Queue.put process, 33
+    assert Queue.get(process) == 33
   end
 
 end
