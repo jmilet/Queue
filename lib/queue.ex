@@ -59,13 +59,13 @@ defmodule Queue do
   #-- Get ----------------------------------------------------------------------
   defp get_work(from, work, readers, writers, capacity) do
     if Enum.empty?(work) do
-      readers = [from | readers]
+      readers = readers ++ [from]
       {:noreply, readers}
     else
       [old_work | work] = work
       if not Enum.empty?(writers) and length(work) < capacity do
         [{writer, writer_work} | writers] = writers
-        work = [writer_work | work]
+        work = work ++ [writer_work]
         GenServer.reply writer, :ok
       end
       {:reply, old_work, work, readers, writers}
@@ -77,18 +77,18 @@ defmodule Queue do
 
   # Put work on the queue.
   defp put_work(from, new_work, writers, readers, work, capacity) do
-    if not Enum.empty?(readers) do
-      [reader | readers] = readers
-      GenServer.reply reader, new_work
+    if length(work) < capacity do
+      work = work ++ [new_work]
+
+      if not Enum.empty?(readers) do
+        [reader | readers] = readers
+        [old_work | work] = work
+        GenServer.reply reader, old_work
+      end
       {:reply, readers, writers, work}
     else
-      if length(work) < capacity do
-        work = [new_work | work]
-        {:reply, readers, writers, work}
-      else
-        writers = [{from, new_work} | writers]
-        {:noreply, readers, writers, work}
-      end
+      writers = writers ++ [{from, new_work}]
+      {:noreply, readers, writers, work}
     end
   end
 end
