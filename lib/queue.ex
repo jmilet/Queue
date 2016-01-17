@@ -10,7 +10,6 @@ defmodule Queue do
   end
 
   def init(capacity) do
-    #IO.inspect "--> #{capacity}"
     {:ok, %Queue.State{capacity: capacity}}
   end
 
@@ -43,13 +42,28 @@ defmodule Queue do
     case put_work(from, new_work, state.writers, state.readers, state.work, state.capacity) do
       {:reply, readers, writers, work} ->
         new_state = %State{state | work: work, readers: readers, writers: writers}
-        ##IO.inspect new_state
         {:reply, :ok, new_state}
       {:noreply, readers, writers, work} ->
         new_state = %State{state | work: work, readers: readers, writers: writers}
-        #IO.inspect new_state
         {:noreply, new_state}
     end
+  end
+
+  # Info.
+  def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
+    # Filter readers.
+    readers = state.readers |> Enum.filter(fn(x) ->
+      {x_pid, _ref} = x
+      x_pid != pid
+    end)
+
+    # Filter writers.
+    writers = state.writers |> Enum.filter(fn(x) ->
+      {{x_pid, _ref}, _value} = x
+      x_pid != pid
+    end)
+
+    {:noreply, %State{state | readers: readers, writers: writers}}
   end
 
   def handle_call(:state, _from, state) do
@@ -60,6 +74,7 @@ defmodule Queue do
   defp get_work(from, work, readers, writers, capacity) do
     if Enum.empty?(work) do
       readers = readers ++ [from]
+      Process.monitor elem(from, 0)
       {:noreply, readers}
     else
       [old_work | work] = work
@@ -74,8 +89,6 @@ defmodule Queue do
 
 
   #-- Put ----------------------------------------------------------------------
-
-  # Put work on the queue.
   defp put_work(from, new_work, writers, readers, work, capacity) do
     if length(work) < capacity do
       work = work ++ [new_work]
@@ -88,6 +101,7 @@ defmodule Queue do
       {:reply, readers, writers, work}
     else
       writers = writers ++ [{from, new_work}]
+      Process.monitor elem(from, 0)
       {:noreply, readers, writers, work}
     end
   end
