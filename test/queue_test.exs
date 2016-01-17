@@ -34,14 +34,18 @@ defmodule QueueTestProducerConsumer do
     assert %Queue.State{readers: []} == Queue.state :queue
   end
 
+  @tag timeout: 10 * 60 * 1000
+
   test "Producer and consumer" do
     producers = 1
-    consumers = 20
-    amount = 10
-    {:ok, _pid} = Queue.start_link :queue, 1
-    {:ok, _pid} = Queue.start_link :accumulator, amount + consumers
+    consumers = 200
+    amount = 100000
+    {:ok, _pid} = Queue.start_link :queue, 20
+    {:ok, _pid} = Queue.start_link :accumulator, (amount * producers) + consumers
 
     parent = self()
+
+    # spawn fn -> print_state(:queue) end
 
     if consumers > 0 do
       1..consumers |> Enum.each(fn(_) ->
@@ -65,7 +69,7 @@ defmodule QueueTestProducerConsumer do
     assert length(Queue.state(:queue).readers) == 0
     assert length(Queue.state(:queue).writers) == 0
 
-    assert length(Queue.state(:accumulator).work) == amount
+    assert length(Queue.state(:accumulator).work) == amount * producers
     assert length(Queue.state(:accumulator).readers) == 0
     assert length(Queue.state(:accumulator).writers) == 0
   end
@@ -89,5 +93,11 @@ defmodule QueueTestProducerConsumer do
     else
       send parent, :ok
     end
+  end
+
+  def print_state(queue) do
+    IO.inspect Queue.state queue
+    :timer.sleep(1000)
+    print_state(queue)
   end
 end
