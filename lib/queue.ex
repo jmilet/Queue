@@ -49,6 +49,11 @@ defmodule Queue do
     end
   end
 
+  # State.
+  def handle_call(:state, _from, state) do
+    {:reply, state, state}
+  end
+
   # Info.
   def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
     # Filter readers.
@@ -66,9 +71,6 @@ defmodule Queue do
     {:noreply, %State{state | readers: readers, writers: writers}}
   end
 
-  def handle_call(:state, _from, state) do
-    {:reply, state, state}
-  end
 
   #-- Get ----------------------------------------------------------------------
   defp get_work(from, work, readers, writers, capacity) do
