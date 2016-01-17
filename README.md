@@ -2,7 +2,7 @@
 
 Queue is a blocking FIFO queue implemented as an Elixir process.
 
-It can be used like this:
+It can be used this way:
 
 ```Elixir
 {:ok, _pid} = Queue.start_link :queue, 20
@@ -11,7 +11,7 @@ val = Queue.get :queue
 IO.inspect Queue.state queue
 ```
 
-It monitors process while being waiting for writing into or reading from the queue.
+It monitors processes while they are waiting for writing into or reading from the queue.
 
 ## Installation
 
