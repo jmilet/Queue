@@ -66,46 +66,57 @@ defmodule QueueTestProducerConsumer do
   doctest Queue
 
   test "Producer and consumer" do
-    {:ok, queue} = Queue.start_link :cola1, 10
-    consumers = 0
-    amount = 1000000
+    producers = 1
+    consumers = 20
+    amount = 100
+    {:ok, queue} = Queue.start_link :queue, 100
+    {:ok, accumulator} = Queue.start_link :accumulator, amount + consumers
 
-    parent = self
+    parent = self()
 
     if consumers > 0 do
       1..consumers |> Enum.each(fn(_) ->
         spawn fn ->
-          consumer(queue)
-          send parent, :ok
+          consumer(parent, queue, accumulator)
         end
       end)
     end
-    
-    producer(queue, amount)
+
+    1..producers |> Enum.each(fn(_) ->
+      spawn fn-> producer(queue, amount, consumers) end
+    end)
 
     if consumers > 0 do
       1..consumers |> Enum.each(fn(_) ->
-        Queue.put queue, :ok
+        receive do: (:ok -> :ok)
       end)
     end
 
-    1..consumers |> Enum.each(fn(_) ->
-      receive do: (:ok -> :ok)
-    end)
-
     IO.inspect Queue.state(queue)
+    IO.inspect Queue.state(accumulator)
+
   end
 
-  def producer(queue, amount) do
+  def producer(queue, amount, consumers) do
     1..amount |> Enum.each(fn(x) ->
       Queue.put queue, x
-      IO.inspect Queue.state queue
+      # IO.inspect Queue.state queue
+    end)
+    1..consumers |> Enum.each(fn(_) ->
+      Queue.put queue, :ok
     end)
   end
 
-  def consumer(queue) do
+  def consumer(parent, queue, accumulator) do
     val = Queue.get queue
-    IO.puts "read: #{inspect self} #{inspect val}"
-    if val != :ok, do: consumer(queue)
+    IO.inspect val
+    if val != :ok do
+      Queue.put accumulator, "read: #{inspect self} #{inspect val}"
+    end
+    if val != :ok do
+      consumer(parent, queue, accumulator)
+    else
+      send parent, :ok
+    end
   end
 end
