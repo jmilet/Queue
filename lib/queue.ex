@@ -6,7 +6,7 @@ defmodule Queue do
   end
 
   def start_link(name, capacity) do
-    GenServer.start_link __MODULE__, capacity, name: name
+    GenServer.start_link __MODULE__, capacity, name: {:global, name}
   end
 
   def init(capacity) do
@@ -14,15 +14,15 @@ defmodule Queue do
   end
 
   def put(name, new_work) do
-    GenServer.call name, {:put, new_work}
+    GenServer.call {:global, name}, {:put, new_work}
   end
 
   def get(name) do
-    GenServer.call name, :get
+    GenServer.call {:global, name}, :get
   end
 
   def state(name) do
-    GenServer.call name, :state
+    GenServer.call {:global, name}, :state
   end
 
   # Get.

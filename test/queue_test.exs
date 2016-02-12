@@ -39,7 +39,7 @@ defmodule QueueTestProducerConsumer do
   test "Producer and consumer" do
     producers = 1
     consumers = 200
-    amount = 100000
+    amount = 1000
     {:ok, _pid} = Queue.start_link :queue, 20
     {:ok, _pid} = Queue.start_link :accumulator, (amount * producers) + consumers
 
@@ -72,6 +72,12 @@ defmodule QueueTestProducerConsumer do
     assert length(Queue.state(:accumulator).work) == amount * producers
     assert length(Queue.state(:accumulator).readers) == 0
     assert length(Queue.state(:accumulator).writers) == 0
+  end
+
+  test "Register a process with a regular term as name" do
+      {:ok, _pid} = Queue.start_link "test_name", 20
+      Queue.put "test_name", 1
+      assert 1 == Queue.get "test_name"
   end
 
   def producer(queue, amount, consumers) do
